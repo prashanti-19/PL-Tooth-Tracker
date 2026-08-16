@@ -21,15 +21,32 @@ jobs:
       - name: Query the database
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Accepts either name, so it doesn't matter which you created
+          KEY_A: ${{ secrets.SUPABASE_KEY }}
+          KEY_B: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -euo pipefail
 
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_KEY:-}" ]; then
-            echo "::error::Missing secrets. Add SUPABASE_URL and SUPABASE_ANON_KEY"
-            echo "::error::under Settings -> Secrets and variables -> Actions."
+          SUPABASE_KEY="${KEY_A:-${KEY_B:-}}"
+
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::Missing secret SUPABASE_URL."
+            echo "::error::Settings -> Secrets and variables -> Actions."
             exit 1
           fi
+
+          if [ -z "${SUPABASE_KEY}" ]; then
+            echo "::error::Missing the anon key. Add a secret named either"
+            echo "::error::SUPABASE_KEY or SUPABASE_ANON_KEY."
+            exit 1
+          fi
+
+          # Catch a URL pasted with a trailing slash or the https:// missing
+          SUPABASE_URL="${SUPABASE_URL%/}"
+          case "${SUPABASE_URL}" in
+            https://*) ;;
+            *) echo "::error::SUPABASE_URL should start with https://"; exit 1 ;;
+          esac
 
           # Row level security means this returns an empty list to an
           # anonymous caller — but the query still reaches Postgres,
