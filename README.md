@@ -23,56 +23,7 @@ Three sections:
 
 Plus a **gear button** for backup and restore.
 
----
-
-## 2. Putting it online
-
-You need a public URL before it can go on her phone. Both accounts below are free and neither asks for a card.
-
-### Step 1 — GitHub
-
-1. Go to `github.com` and make an account.
-2. Click **+** (top right) → **New repository**.
-3. Name it anything, e.g. `clinic-log`. Leave it **Public**. Click **Create repository**.
-4. Click **uploading an existing file**.
-5. Drag in `clinic-calendar.html`.
-6. **Rename it to `index.html`.** This matters — `index.html` is the name a web server looks for by default. Without it the site shows a file listing instead of the app.
-7. Click **Commit changes**.
-
-### Step 2 — Turn on GitHub Pages
-
-No second account needed.
-
-1. In your repository, click **Settings**.
-2. **Pages** in the left sidebar.
-3. Source: **Deploy from a branch**. Branch: `main`, folder: `/ (root)`.
-4. **Save**.
-
-After a minute you get a URL like `yourusername.github.io/clinic-log/`. Open it — the app should load.
-
-The repository must stay **Public** for free GitHub Pages. That is fine: the code holds no secrets, and no patient data is ever in the file.
-
-### Why not Netlify
-
-Netlify moved to a credit system for accounts created after September 2025 — 300 credits a month, with each deploy costing 15. That works out to roughly 20 deploys a month, and when the credits run out the site stops serving traffic entirely.
-
-Bandwidth was never going to be an issue for one user, but the deploy cap bites while you are still making changes, and running out takes her app offline. GitHub Pages has no deploy cap.
-
-**Cloudflare Pages** is a good alternative if you would rather not use a `github.io` address.
-
-### Step 3 — Updating it later
-
-Edit `index.html` on GitHub (pencil icon), commit, and Pages redeploys within a minute. She refreshes the app to get the new version. Her data is untouched by updates.
-
-### Pick the URL before she starts
-
-Storage is tied to the exact web address. Moving hosts later, or renaming the repository, gives her an app that opens completely empty — the old data is still there, but under an address the app no longer uses.
-
-Decide on the host and the name **now**, before real data goes in.
-
----
-
-## 3. Installing on her iPhone
+## 2. Installing on her iPhone
 
 **This must be done in Safari.** Chrome and Firefox on iPhone cannot install home screen apps properly, and the install is what protects her data (see section 6).
 
@@ -89,7 +40,7 @@ The icon appears on her home screen. Tapping it opens the app full-screen with n
 
 ---
 
-## 4. How each part works
+## 3. How each part works
 
 ### Calendar
 
@@ -171,30 +122,6 @@ A file that isn't a valid backup is rejected without touching her data.
 
 ---
 
-## 6. Where the data lives — read this part
-
-All data is stored in `localStorage`, in the browser, **on her phone only**. Nothing is uploaded. There is no server, no account, no cloud, no sync.
-
-### What that means, plainly
-
-**Safe:**
-- Refreshing the page
-- Closing the app
-- Restarting the phone
-- Updating the app on GitHub
-- Being offline
-
-**Destroys everything:**
-- Clearing Safari history and website data
-- **Deleting the home screen icon** — the data goes with it
-- Getting a new phone (nothing transfers by itself)
-- Using it in Private Browsing
-
-**Looks empty but isn't:**
-- Opening the site in Safari when she normally uses the home screen icon
-- Opening it in Chrome
-- Opening it on a different device
-
 ### The iOS 7-day rule
 
 Safari deletes locally-stored data after seven days without interacting with a site. This is Apple's anti-tracking policy and it has killed data for plenty of web apps.
@@ -224,26 +151,6 @@ What to be careful about:
 - **Check her workplace policy** before this becomes her system of record. Some hospitals require clinical records to stay in approved systems. This is a personal tracker, not a medical record — worth being clear about that distinction with anyone who asks.
 - **If she loses the phone**, whoever has it can open the app. Her passcode is the only thing protecting it. A phone passcode is essential, which she almost certainly already has.
 
----
-
-## 8. Things you can edit yourself
-
-All near the top of the `<script>` section.
-
-**Her name** — one line:
-```js
-const NAME = "Fattie";
-```
-
-**The daily lines** — the list right below `NAME`. Add, remove, or rewrite freely; it picks by date, so the count doesn't matter.
-
-**Quota targets** — the `DEFAULT_QUOTA` block. Change a `target` number, add a procedure, add a whole department.
-
-**One catch:** the quota structure is only read from the code the *first* time the app runs on a device. After that it reads from her phone's storage. Editing `DEFAULT_QUOTA` later will not change what's already on her phone. If requirements change mid-year, tell me and I'll write a proper update path — don't just edit the numbers and expect them to appear.
-
-**Colours** — the `:root` block at the top of the `<style>` section. Everything derives from those variables. `--bg` is the main background; nudge it darker or lighter and the rest follows.
-
----
 
 ## 9. What it deliberately doesn't do
 
@@ -284,12 +191,4 @@ Three things that *do* destroy data:
 **Before any update, have her tap gear → Export.** Thirty seconds, and it makes the change reversible.
 
 ---
-
-## 12. If it outgrows this
-
-The point at which local storage stops being enough is when she wants it on two devices, or when losing the phone would be a disaster rather than an inconvenience.
-
-At that point the path is **Supabase** — free tier, real database, syncs across devices, survives phone loss. It adds a login screen, and it means patient names live on a third-party server, which brings the PDPA question back in a way it doesn't apply today.
-
-Not worth doing until she's actually used this for a month or two. Let real annoyances drive the next version rather than guesses.
 
