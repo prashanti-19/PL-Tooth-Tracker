@@ -2,7 +2,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Clinic Log</title>
+<title>Tooth Tracker</title>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 <meta name="theme-color" content="#CCD3E6">
@@ -270,7 +270,7 @@
         C 322 400, 332 382, 340 352 C 352 312, 362 272, 362 226
         C 362 164, 322 122, 256 122 Z"/>
     </svg>
-    <h1>Clinic Log</h1>
+    <h1>Tooth Tracker</h1>
     <p class="locksub" id="lockSub">Sign in to open your logbook.</p>
 
     <label for="l-email">Email address</label>
@@ -1463,7 +1463,7 @@ document.getElementById("doExport").onclick = async ()=>{
   try{
     const file = new File([text], filename, { type:"application/json" });
     if (navigator.canShare && navigator.canShare({ files:[file] })){
-      await navigator.share({ files:[file], title:"Clinic Log backup" });
+      await navigator.share({ files:[file], title:"Tooth Tracker backup" });
       bok.textContent = "Backup shared.";
       return;
     }
@@ -1495,7 +1495,7 @@ document.getElementById("fileIn").onchange = async (ev)=>{
   try{
     const data = JSON.parse(await file.text());
     if (!data || !Array.isArray(data.appointments) || !Array.isArray(data.quota)){
-      bwarn.textContent = "That file isn't a Clinic Log backup.";
+      bwarn.textContent = "That file isn't a Tooth Tracker backup.";
       return;
     }
     pending = data;
