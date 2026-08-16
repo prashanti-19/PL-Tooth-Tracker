@@ -1,0 +1,70 @@
+name: Keep Supabase awake
+
+# Supabase pauses free projects after 7 days with no database activity.
+# A paused project must be resumed by hand from the dashboard, so this
+# runs a trivial query every 3 days to reset that clock.
+#
+# 3 days, not 6: GitHub delays scheduled jobs when its runners are busy,
+# sometimes by hours. Two chances to land inside the 7-day window.
+
+on:
+  schedule:
+    - cron: '0 3 */3 * *'      # 03:00 UTC, every 3rd day
+  workflow_dispatch:            # adds a "Run workflow" button for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Query the database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_KEY:-}" ]; then
+            echo "::error::Missing secrets. Add SUPABASE_URL and SUPABASE_ANON_KEY"
+            echo "::error::under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+          # Row level security means this returns an empty list to an
+          # anonymous caller — but the query still reaches Postgres,
+          # which is the whole point. No patient data is read or exposed.
+          STATUS=$(curl -sS -o /tmp/body.txt -w '%{http_code}' \
+            --max-time 30 \
+            --retry 3 --retry-delay 10 --retry-connrefused \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            "${SUPABASE_URL}/rest/v1/app_state?select=user_id&limit=1")
+
+          echo "HTTP ${STATUS}"
+
+          case "${STATUS}" in
+            2*)
+              echo "Database reached. Pause timer reset."
+              ;;
+            401|403)
+              echo "::error::Rejected (${STATUS}). Check SUPABASE_ANON_KEY is the"
+              echo "::error::'anon public' key, and that it matches this project."
+              exit 1
+              ;;
+            404)
+              echo "::error::Table not found. Did supabase-setup.sql run successfully?"
+              exit 1
+              ;;
+            5*|000)
+              echo "::error::Project unreachable (${STATUS}). It may already be paused —"
+              echo "::error::resume it once from the Supabase dashboard, then this keeps it up."
+              cat /tmp/body.txt || true
+              exit 1
+              ;;
+            *)
+              echo "::error::Unexpected response ${STATUS}"
+              cat /tmp/body.txt || true
+              exit 1
+              ;;
+          esac
