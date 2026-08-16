@@ -1226,6 +1226,16 @@ document.getElementById("save").onclick = async ()=>{
      * a paused, offline or broken Supabase changes nothing on screen
      * whichever side has the newer timestamp wins on startup
    =============================================================== */
+/* A rejection from the server (banned, deleted, key revoked) is a very
+   different thing from a flat tyre on the network. The first must close
+   the door; the second must not, or she loses the app in a basement. */
+function isRefusal(e){
+  const code   = e && (e.status || e.code);
+  const msg    = ((e && e.message) || "").toLowerCase();
+  if (code === 401 || code === 403) return true;
+  return /banned|not authorized|unauthorized|jwt|invalid token|user not found|forbidden/.test(msg);
+}
+  
 const cloud = {
   sb: null,           // supabase client, once loaded
   user: null,
@@ -1239,8 +1249,19 @@ const cloud = {
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
       this.sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      const { data } = await this.sb.auth.getSession();
+      const { data, error } = await this.sb.auth.getSession();
+      if (error && isRefusal(error)){ await this.revoke(); return; }
       this.user = data && data.session ? data.session.user : null;
+
+      /* A cached session can outlive a ban by up to an hour. Ask the
+         server to refresh it: a banned account fails that check. */
+      if (this.user){
+        try{
+          const r = await this.sb.auth.refreshSession();
+          if (r.error && isRefusal(r.error)){ await this.revoke(); return; }
+          if (r.data && r.data.user) this.user = r.data.user;
+        }catch(e){ /* offline: keep the cached session, she can still work */ }
+      }
 
       this.sb.auth.onAuthStateChange((_e, session)=>{
         this.user = session ? session.user : null;
@@ -1325,9 +1346,19 @@ const cloud = {
       this.lastSync = new Date();
       this.setStatus("ready");
     }catch(e){
+      if (isRefusal(e)){ this.revoke(); return; }
       /* offline or paused project: the phone still holds everything */
       this.setStatus("pending");
     }
+  },
+
+  /* Access withdrawn. Stop syncing, forget the device claim, lock up. */
+  async revoke(){
+    try{ await this.sb.auth.signOut(); }catch(e){}
+    this.user = null;
+    try{ localStorage.removeItem(U_KEY); }catch(e){}
+    this.setStatus("revoked");
+    if (typeof refreshDoor === "function") refreshDoor();
   },
 
   async pull(){
@@ -1386,6 +1417,7 @@ const cloud = {
       this.lastSync = new Date();
       this.setStatus("ready");
     }catch(e){
+      if (isRefusal(e)){ this.revoke(); return; }
       this.setStatus("pending");
     }
   }
@@ -1605,6 +1637,13 @@ function setLocked(locked, note){
 
 function refreshDoor(){
   if (!CLOUD_ON){ setLocked(false); return; }      // sync off: no gate at all
+
+  /* A refusal outranks everything, including a previously trusted device. */
+  if (cloud.status === "revoked"){
+    setLocked(true, "This account no longer has access. Contact whoever set the app up.");
+    return;
+  }
+
   if (cloud.user){ setLocked(false); return; }
 
   if (cloud.status === "unavailable" || cloud.status === "pending"){
@@ -1627,6 +1666,8 @@ function friendlyError(e){
     return "Wrong email or password. If this is the first time, tap Create account.";
   if (/signups not allowed|not enabled/i.test(m))
     return "New signups are switched off for this project.";
+  if (/banned|user is banned/i.test(m))
+    return "This account has been suspended.";
   if (/fetch|network/i.test(m))
     return "No connection. Try again when you have signal.";
   return m || "Something went wrong.";
@@ -1702,6 +1743,7 @@ function renderCloudPanel(){
     ready:       ["s-ready", "Backed up to the cloud as " + (cloud.user ? cloud.user.email : "") + when],
     syncing:     ["s-wait",  "Syncing\u2026"],
     pending:     ["s-wait",  "Can't reach the cloud. Saved on this phone, will sync later."],
+    revoked:     ["s-off",   "This account no longer has access."],
     unavailable: ["s-off",   "Cloud unavailable. The app works normally without it."],
     off:         ["s-off",   ""]
   };
