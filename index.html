@@ -401,8 +401,8 @@
    The anon key is safe to publish: row level security in
    supabase-setup.sql is what actually protects the data.
    =============================================================== */
-const SUPABASE_URL = "";        // e.g. https://abcdefgh.supabase.co
-const SUPABASE_KEY = "";        // the "anon public" key
+const SUPABASE_URL = "https://iudjgjgsqzofzoxzydco.supabase.co";        // e.g. https://abcdefgh.supabase.co
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1ZGpnamdzcXpvZnpveHp5ZGNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4Njk0OTksImV4cCI6MjEwMjQ0NTQ5OX0.GpOOssNDVva04NaH9VYwimJY_OJEUrymDMIgveTN3_k";        // the "anon public" key
 
 const CLOUD_ON = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
@@ -684,7 +684,7 @@ function updateBadge(){
     const done    = day.filter(a=> a.seen).length;
     alert = late > 0;
 
-    if (!day.length)   text = "Nothing booked";
+    if (!day.length)   text = "No Appointment";
     else if (late)     text = late + " overdue";
     else if (waiting)  text = waiting + " pending";
     else               text = done + " completed";
@@ -738,7 +738,7 @@ function renderCal(){
   list.innerHTML = "";
 
   if (!items.length){
-    list.innerHTML = '<div class="empty">Nothing booked.<br>Tap this day again to add someone.</div>';
+    list.innerHTML = '<div class="empty">No Appointment.<br>Tap this day again to add someone.</div>';
     return;
   }
   items.forEach(a=> list.appendChild(card(a)));
